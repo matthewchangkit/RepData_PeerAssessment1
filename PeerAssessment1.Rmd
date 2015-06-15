@@ -8,7 +8,7 @@ output: html_document
 
 We load the data and make our necessary transformations. More specifically, we transform out dates into a date format suitable for our analysis.
 ```{r}
-activity <- read.csv("Coursera/activity.csv",header=T)
+activity <- read.csv("activity.csv",header=T)
 head(activity)
 activity$date <- as.Date(activity$date)
 ```
