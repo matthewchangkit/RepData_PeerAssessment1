@@ -1,0 +1,97 @@
+---
+title: "Reproducible Research - Peer Assessment 1"
+author: "Matthew Chang Kit"
+date: "Sunday, April 19, 2015"
+output: html_document
+---
+## Loading and preprocessing the data
+
+We load the data and make our necessary transformations. More specifically, we transform out dates into a date format suitable for our analysis.
+```{r}
+activity <- read.csv("Coursera/activity.csv",header=T)
+head(activity)
+activity$date <- as.Date(activity$date)
+```
+  
+## What is the mean total number of steps taken per day?
+
+We first use the aggregate function to calculate the total number of steps taken per day.
+```{r}
+s.p.Day <- aggregate(steps ~ date,data = activity, FUN = sum)
+```
+Now, we shall construct the corresponding histogram, adding a little more aesthetics for viewing purposes.
+```{r}
+library(ggplot2)
+hist <- ggplot(s.p.Day,aes(x = s.p.Day$steps)) + geom_histogram(aes(fill=..count..))
+hist + scale_fill_gradient("Count",low = "green",high = "red")
+```
+In addition to the histogram produced we will produce the mean and median of the aggregated data.
+```{r}
+MEAN <- mean(s.p.Day$steps)
+MEDIAN <- median(s.p.Day$steps)
+```
+As a reult of the code we see that the average number of steps taken per day is approximately 10767 and the median number of steps taken per day is 10765.   
+
+## What is the average daily activity pattern?
+Now we will look for the average daily activity pattern by observing the average number of steps taken over a 5 minute interval.
+```{r}
+s.p.Int <- aggregate(steps ~ interval, data = activity, FUN = mean)
+time <- ggplot(s.p.Int, aes(x = interval, y = steps)) 
+time + geom_line(stat = "identity")
+```
+From here we calculate to find the exact time where the maximum number of steps were taken,averaged across all days within the 5 min. interval
+```{r}
+s.p.Int$interval[which.max(s.p.Int$steps)]
+```
+This result means that at 8:35 we have the maximum number of steps taken within the averaged 5 min. intervals across everyday.
+
+## Imputing Missing Values
+We look now for the total number of missing data from the original data set.
+```{r}
+length(which(is.na(activity))) 
+```
+We will now fill in the missing data and create a new complete data set. To do this we compare the mean and median values to find which value would best represent the missing data.
+```{r}
+mean(na.omit(activity$steps))
+median(na.omit(activity$steps))
+```
+As we can see, the mean produces 37.38 steps whereas the median produces 0 steps. Thus we shall use the mean as a representation of our missing data. Filling in the missing data we have:
+```{r}
+n.activity <- activity
+n.activity$steps[is.na(n.activity$steps)] <- mean(na.omit(activity$steps))
+```
+Now we can view a completed dataset through the lens of a histogram as previously achieved without it.
+```{r}
+n.s.p.Day <- aggregate(steps ~ date, data = n.activity, FUN = sum)
+hist <- ggplot(n.s.p.Day,aes(x = n.s.p.Day$steps))
+hist + geom_histogram(aes(fill=..count..)) +scale_fill_gradient("Count",low = "green",high = "red")
+```
+Calculating its corresponding mean and medians we have:
+```{r}
+N.MEAN <- mean(n.s.p.Day$steps)
+N.MEDIAN <- median(n.s.p.Day$steps)
+```
+Finally we look at the impact of imputing the mising values from when they were omitted.
+```{r}
+MEAN - N.MEAN
+MEDIAN - N.MEDIAN
+```
+We see that there is no difference within the means of the old vs. new data set, however, the median shifted 1.19 units to the left given the missing data filled in.
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+We first start off by creating the new factor variable.
+```{r}
+n.activity$day[weekdays(as.Date(n.activity$date)) %in% c("Saturday","sunday")] <-
+  "weekend"
+n.activity$day[!weekdays(as.Date(n.activity$date)) %in% c("Saturday","sunday")] <-
+  "weekday"
+n.activity$day <- as.factor(n.activity$day)
+```
+Now we shall create a panel time series plot to view weekdays and weekends on the 5 min. interval for the average no. of steps taken everyday.
+```{r}
+n.s.p.Int <- aggregate(steps ~ interval + day, data = n.activity,FUN =mean)
+n.time <- ggplot(n.s.p.Int,aes(x=interval,y=steps,group=1))
+n.time + geom_line() + facet_wrap(~ day, ncol=1)
+```
